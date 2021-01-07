@@ -14,7 +14,7 @@ export default class GameComponent extends Component<{}, GameState> {
 
     constructor(props: {}) {
         super(props);
-        this.board = new Board(4, 4);
+        this.board = new Board(8, 8);
     }
 
     render() {
@@ -23,7 +23,7 @@ export default class GameComponent extends Component<{}, GameState> {
         if (winner) {
             status = winner;
         } else {
-            status = 'Next player: ' + this.getNextPiece(this.state.firstIsNext);
+            status = 'Next player: ' + Board.getNextPiece(this.state.firstIsNext);
         }
         return (
             <div className="game">
@@ -54,12 +54,15 @@ export default class GameComponent extends Component<{}, GameState> {
                     }else {
                         sumDictionary[value] = 1;
                     }
-                }else {
-                    return null;
                 }
             }
         }
         let keys = Object.keys(sumDictionary);
+        let isEnd = (sumDictionary[keys[0]] + sumDictionary[keys[1]] === board.rowNumber * board.columnNumber
+        || (!this.canPlacePiece(true) && !this.canPlacePiece(false)));
+        if (!isEnd) {
+            return null;
+        }
         if (sumDictionary[keys[0]] === sumDictionary[keys[1]]) {
             return "Draw";
         }
@@ -91,19 +94,36 @@ export default class GameComponent extends Component<{}, GameState> {
         if (this.judgeWinner(this.board)) {
             return;
         }
-        this.board.setSquare(x, y, this.getNextPiece(this.state.firstIsNext));
+        if (!this.canPlacePiece(this.state.firstIsNext)) {
+            alert('置ける場所がないので、手番をスキップします');
+            this.setState({
+                firstIsNext: !this.state.firstIsNext
+            });
+            return;
+        }
+        if (!this.board.checkReverse(x,y,this.state.firstIsNext)) {
+            alert('相手の駒を返せる位置に駒を置いてください');
+            return;
+        }
+        this.board.executeReverse(x,y,this.state.firstIsNext);
+        this.board.setSquare(x, y, this.state.firstIsNext);
         this.setState({
             firstIsNext: !this.state.firstIsNext
         });
+
     }
 
-    /**
-     * 次の駒の値を取得します
-     * @param firstIsNext 次の駒は先手の駒か
-     * @return 駒の文字列
-     * @private
-     */
-    private getNextPiece(firstIsNext: boolean) {
-        return firstIsNext ? '○' : '●';
+    private canPlacePiece(firstIsNext: boolean):boolean {
+        for (let i = 0; i < this.board.rowNumber; i++) {
+            for (let j = 0; j < this.board.columnNumber; j++) {
+                if (this.board.getSquare(i, j)) {
+continue;
+                }
+                if (this.board.checkReverse(i,j,firstIsNext)) {
+                    return true;
+                }
+            }
+        }
+            return false;
     }
 }
